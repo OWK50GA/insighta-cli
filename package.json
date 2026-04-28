@@ -1,0 +1,35 @@
+{
+  "name": "insighta-cli",
+  "version": "0.1.0",
+  "description": "Globally installable CLI for the Insighta Labs+ platform",
+  "main": "dist/bin/insighta.js",
+  "bin": {
+    "insighta": "dist/bin/insighta.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": ["insighta", "cli"],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "@fast-check/vitest": "^0.1.5",
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.9.0",
+    "fast-check": "^3.22.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.0"
+  }
+}
