@@ -53,7 +53,7 @@ export async function listProfiles(options: ListProfilesOptions): Promise<void> 
 
   // Optional filter params
   if (options.gender !== undefined)   query.gender    = options.gender;
-  if (options.country !== undefined)  query.country   = options.country;
+  if (options.country !== undefined)  query.country_id = options.country;
   if (options.ageGroup !== undefined) query.age_group = options.ageGroup;
   if (options.minAge !== undefined)   query.min_age   = options.minAge;
   if (options.maxAge !== undefined)   query.max_age   = options.maxAge;

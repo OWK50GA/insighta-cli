@@ -9,3 +9,5 @@ coverage/
 pnpm-debug.log*
 .kiro
 **/*.code-workspace
+
+**/*.csv
