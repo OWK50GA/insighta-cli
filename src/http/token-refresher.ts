@@ -22,7 +22,7 @@ export async function refreshAndRetry<T>(originalOptions: ApiRequestOptions): Pr
     try {
         refreshResponse = await apiRequest<RefreshResponse>({
             method: 'POST',
-            path: '/api/v1/auth/refresh',
+            path: '/auth/refresh',
             body: { refresh_token: creds.refreshToken },
             accessToken: creds.accessToken, // still needed for the request wrapper
             operation: 'token refresh',
