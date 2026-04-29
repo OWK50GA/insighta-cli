@@ -14,10 +14,10 @@ export async function logout(): Promise<void> {
     try {
       await apiRequest({
         method: 'POST',
-        path: '/api/v1/auth/logout',
+        path: '/auth/logout',
         body: { refresh_token: creds.refreshToken },
         accessToken: creds.accessToken,
-        operation: 'POST /api/v1/auth/logout',
+        operation: 'POST /auth/logout',
       });
     } catch (err: unknown) {
       if (err instanceof NetworkError) {

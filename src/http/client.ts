@@ -9,6 +9,13 @@ import {
 
 export interface ApiRequestOptions {
   method: 'GET' | 'POST' | 'DELETE';
+  /**
+   * Full path including prefix, e.g. '/api/profiles' or '/auth/me'.
+   * The client does NOT add any prefix — callers are responsible for
+   * supplying the correct path per the routing contract:
+   *   - Profile routes: /api/<resource>
+   *   - Auth routes:    /auth/<resource>
+   */
   path: string;
   query?: Record<string, string | number>;
   body?: unknown;
@@ -23,10 +30,9 @@ export interface ApiResponse<T> {
 }
 
 const BASE_URL = process.env.INSIGHTA_API_URL ?? 'http://localhost:3000';
-const API_PREFIX = '/api/v1';
 
 function buildUrl(path: string, query?: Record<string, string | number>): string {
-  const normalizedPath = path.startsWith(API_PREFIX) ? path : `${API_PREFIX}${path.startsWith('/') ? path : `/${path}`}`;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const url = new URL(normalizedPath, BASE_URL);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
@@ -43,6 +49,8 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<ApiResp
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
+    'x-client-type': 'cli',
+    'x-api-version': '1'
   };
 
   let bodyStr: string | undefined;
@@ -65,10 +73,9 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<ApiResp
 
   const { status } = response;
 
-  // 401 — return as-is for the token refresher to handle
+  // 401 — delegate to token refresher which will retry the original request once
   if (status === 401) {
-    const { refreshAndRetry } = await import('./token-refresher')
-    // return { status, data: undefined as unknown as T, headers: response.headers };
+    const { refreshAndRetry } = await import('./token-refresher');
     return refreshAndRetry<T>(options);
   }
 

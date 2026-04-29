@@ -16,41 +16,57 @@ function httpGet(url: string): Promise<number> {
 }
 
 /**
- * Property 1: Callback server resolves with all three token fields
+ * Property 3: Callback server resolves with code and state from GitHub
  * Validates: Requirements 2.4
  */
 describe('startCallbackServer', () => {
   test.prop(
     [
-      fc.string({ minLength: 1 }),   // access_token
-      fc.string({ minLength: 1 }),   // refresh_token
-      fc.integer({ min: 1 }),        // expires_in (positive)
+      fc.string({ minLength: 1 }),  // code
+      fc.string({ minLength: 1 }),  // state
     ],
     { numRuns: 50 }
   )(
-    'Property 1: resolves with all three token fields matching the query params',
-    async (accessToken, refreshToken, expiresIn) => {
-      const { port, token } = startCallbackServer();
+    'Property 3: resolves with code and state exactly as received in the callback',
+    async (code, state) => {
+      const { port, result } = await startCallbackServer();
 
-      const encodedAccess = encodeURIComponent(accessToken);
-      const encodedRefresh = encodeURIComponent(refreshToken);
       const url =
         `http://127.0.0.1:${port}/callback` +
-        `?access_token=${encodedAccess}` +
-        `&refresh_token=${encodedRefresh}` +
-        `&expires_in=${expiresIn}`;
+        `?code=${encodeURIComponent(code)}` +
+        `&state=${encodeURIComponent(state)}`;
 
       await httpGet(url);
-      const result = await token;
+      const callbackResult = await result;
 
-      expect(result.accessToken).toBe(accessToken);
-      expect(result.refreshToken).toBe(refreshToken);
-      expect(result.expiresIn).toBe(expiresIn);
+      expect(callbackResult.code).toBe(code);
+      expect(callbackResult.state).toBe(state);
     }
   );
 
+  it('returns 400 when code is missing from callback', async () => {
+    const { port, result } = await startCallbackServer(5_000);
+    const status = await httpGet(`http://127.0.0.1:${port}/callback?state=abc`);
+    expect(status).toBe(400);
+    result.catch(() => {});
+  });
+
+  it('returns 400 when state is missing from callback', async () => {
+    const { port, result } = await startCallbackServer(5_000);
+    const status = await httpGet(`http://127.0.0.1:${port}/callback?code=xyz`);
+    expect(status).toBe(400);
+    result.catch(() => {});
+  });
+
+  it('returns 404 for non-callback paths', async () => {
+    const { port, result } = await startCallbackServer(5_000);
+    const status = await httpGet(`http://127.0.0.1:${port}/other`);
+    expect(status).toBe(404);
+    result.catch(() => {});
+  });
+
   it('rejects with TimeoutError when the timeout elapses', async () => {
-    const { token } = startCallbackServer(50);
-    await expect(token).rejects.toBeInstanceOf(TimeoutError);
+    const { result } = await startCallbackServer(50);
+    await expect(result).rejects.toBeInstanceOf(TimeoutError);
   });
 });

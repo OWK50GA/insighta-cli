@@ -121,18 +121,20 @@ describe('apiRequest', () => {
     expect(result.data).toEqual({ retried: true });
   });
 
-  it('prefixes path with /api/v1', async () => {
+  it('uses path as-is for profile routes', async () => {
     vi.mocked(fetch).mockResolvedValue(makeResponse(200, {}));
-    await apiRequest({ ...BASE_OPTIONS, path: '/profiles' });
+    await apiRequest({ ...BASE_OPTIONS, path: '/api/profiles' });
     const [url] = vi.mocked(fetch).mock.calls[0]!;
-    expect(String(url)).toContain('/api/v1/profiles');
+    expect(String(url)).toContain('/api/profiles');
+    expect(String(url)).not.toContain('/api/v1');
   });
 
-  it('does not double-prefix /api/v1 paths', async () => {
+  it('uses path as-is for auth routes', async () => {
     vi.mocked(fetch).mockResolvedValue(makeResponse(200, {}));
-    await apiRequest({ ...BASE_OPTIONS, path: '/api/v1/profiles' });
+    await apiRequest({ ...BASE_OPTIONS, path: '/auth/me' });
     const [url] = vi.mocked(fetch).mock.calls[0]!;
-    expect(String(url)).not.toContain('/api/v1/api/v1');
+    expect(String(url)).toContain('/auth/me');
+    expect(String(url)).not.toContain('/api/v1');
   });
 
   it('appends query params to URL', async () => {
