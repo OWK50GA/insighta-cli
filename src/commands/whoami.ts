@@ -23,7 +23,6 @@ export async function whoami(): Promise<void> {
     operation: "GET /auth/me",
   });
 
-  console.log(response);
-  const { username, role } = response.data?.user;
+  const { username, role } = response.data.user;
   console.log(`Logged in as ${username} (${role})`);
 }

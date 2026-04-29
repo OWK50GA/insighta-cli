@@ -68,7 +68,7 @@ describe("whoami", () => {
       });
       mockApiRequest.mockResolvedValue({
         status: 200,
-        data: { data: { username, role } },
+        data: { status: 'success', user: { username, role } },
         headers: new Headers(),
       });
 
