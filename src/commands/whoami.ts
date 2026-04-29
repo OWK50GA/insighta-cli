@@ -2,7 +2,7 @@ import { credentialsExist, readCredentials } from '../auth/credentials';
 import { apiRequest } from '../http/client';
 
 interface MeResponse {
-  data: {
+  user: {
     username: string;
     role: 'admin' | 'analyst';
   };
@@ -18,11 +18,12 @@ export async function whoami(): Promise<void> {
 
   const response = await apiRequest<MeResponse>({
     method: 'GET',
-    path: '/api/v1/auth/me',
+    path: '/auth/me',
     accessToken: creds.accessToken,
-    operation: 'GET /api/v1/auth/me',
+    operation: 'GET /auth/me',
   });
 
-  const { username, role } = response.data.data;
+  console.log(response);
+  const { username, role } = response.data?.user;
   console.log(`Logged in as ${username} (${role})`);
 }
