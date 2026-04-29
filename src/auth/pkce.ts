@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 
 export interface PKCEParams {
   /** Cryptographically random hex nonce — used to validate the OAuth callback. */
@@ -14,12 +14,12 @@ export interface PKCEParams {
  * All values are cryptographically random and single-use.
  */
 export function generatePKCEParams(): PKCEParams {
-  const state = crypto.randomBytes(16).toString('hex');
-  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const state = crypto.randomBytes(16).toString("hex");
+  const codeVerifier = crypto.randomBytes(32).toString("base64url");
   const codeChallenge = crypto
-    .createHash('sha256')
+    .createHash("sha256")
     .update(codeVerifier)
-    .digest('base64url');
+    .digest("base64url");
 
   return { state, codeVerifier, codeChallenge };
 }
@@ -49,7 +49,7 @@ export function getCallbackPort(): number {
 export function buildGitHubAuthUrl(params: PKCEParams, port: number): string {
   const clientId = process.env.GITHUB_CLIENT_ID;
   if (!clientId) {
-    throw new Error('GITHUB_CLIENT_ID environment variable is not set.');
+    throw new Error("GITHUB_CLIENT_ID environment variable is not set.");
   }
 
   const redirectUri = `http://127.0.0.1:${port}/callback`;
@@ -57,11 +57,11 @@ export function buildGitHubAuthUrl(params: PKCEParams, port: number): string {
   const query = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: 'read:user user:email',
+    scope: "read:user user:email",
     state: params.state,
     code_challenge: params.codeChallenge,
-    code_challenge_method: 'S256',
-    response_type: 'code',
+    code_challenge_method: "S256",
+    response_type: "code",
   });
 
   return `https://github.com/login/oauth/authorize?${query.toString()}`;

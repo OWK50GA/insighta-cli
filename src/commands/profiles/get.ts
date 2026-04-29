@@ -1,16 +1,16 @@
-import { credentialsExist, readCredentials } from '../../auth/credentials';
-import { apiRequest } from '../../http/client';
-import { formatProfile, type Profile } from '../../output/formatter';
-import { startSpinner } from '../../output/spinner';
+import { credentialsExist, readCredentials } from "../../auth/credentials";
+import { apiRequest } from "../../http/client";
+import { formatProfile, type Profile } from "../../output/formatter";
+import { startSpinner } from "../../output/spinner";
 
 interface GetProfileResponse {
-  status: 'success';
+  status: "success";
   data: Profile;
 }
 
 export async function getProfile(id: string): Promise<void> {
   if (!credentialsExist()) {
-    console.error('Not logged in. Run `insighta login` to authenticate.');
+    console.error("Not logged in. Run `insighta login` to authenticate.");
     process.exit(1);
   }
 
@@ -20,7 +20,7 @@ export async function getProfile(id: string): Promise<void> {
   let response;
   try {
     response = await apiRequest<GetProfileResponse>({
-      method: 'GET',
+      method: "GET",
       path: `/api/profiles/${id}`,
       accessToken: creds.accessToken,
       operation: `GET /api/profiles/${id}`,
