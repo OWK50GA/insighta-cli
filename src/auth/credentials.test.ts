@@ -16,7 +16,7 @@ vi.mock("os", async (importOriginal) => {
 });
 
 const TEST_DIR = path.join(os.tmpdir(), `insighta-creds-test-${process.pid}`);
-const TEST_CREDS_PATH = path.join(TEST_DIR, "credentials.json");
+const _TEST_CREDS_PATH = path.join(TEST_DIR, "credentials.json");
 
 beforeEach(() => {
   vi.spyOn(os, "homedir").mockReturnValue(
