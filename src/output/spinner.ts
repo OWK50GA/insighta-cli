@@ -4,7 +4,7 @@
  * (e.g. when output is piped or redirected).
  */
 
-const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const INTERVAL_MS = 80;
 
 export interface Spinner {
@@ -57,7 +57,7 @@ export function startSpinner(message: string): Spinner {
       stopped = true;
       clearInterval(timer);
       // Clear the spinner line
-      process.stdout.write('\r\x1b[K');
+      process.stdout.write("\r\x1b[K");
       if (finalMessage) process.stdout.write(`${finalMessage}\n`);
     },
   };

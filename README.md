@@ -49,11 +49,11 @@ Requires Node.js 18 or later.
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `INSIGHTA_API_URL` | `http://localhost:3000` | Backend base URL |
-| `GITHUB_CLIENT_ID` | — | **Required.** GitHub OAuth app client ID for the CLI |
-| `INSIGHTA_CALLBACK_PORT` | `9876` | Local port for the OAuth callback server |
+| Variable                 | Default                 | Description                                          |
+| ------------------------ | ----------------------- | ---------------------------------------------------- |
+| `INSIGHTA_API_URL`       | `http://localhost:3000` | Backend base URL                                     |
+| `GITHUB_CLIENT_ID`       | —                       | **Required.** GitHub OAuth app client ID for the CLI |
+| `INSIGHTA_CALLBACK_PORT` | `9876`                  | Local port for the OAuth callback server             |
 
 Set these in your shell profile or a `.env` file before running the CLI.
 
@@ -111,10 +111,10 @@ If the browser flow is not completed within 5 minutes, the CLI times out and exi
 
 The backend enforces all role restrictions. The CLI surfaces permission errors clearly.
 
-| Role | Permitted commands |
-|---|---|
+| Role      | Permitted commands                                    |
+| --------- | ----------------------------------------------------- |
 | `analyst` | `list`, `get`, `search`, `export`, `whoami`, `logout` |
-| `admin` | All analyst commands + `create`, `delete` |
+| `admin`   | All analyst commands + `create`, `delete`             |
 
 When a 403 is received, the error message includes the user's current role. The CLI never enforces roles locally.
 
@@ -177,27 +177,27 @@ insighta profiles --help
 
 ## `profiles list` Options
 
-| Flag | Type | Description |
-|---|---|---|
-| `--gender` | `male` \| `female` | Filter by gender |
-| `--country` | string | ISO 3166-1 alpha-2 country code (e.g. `NG`, `US`) |
-| `--age-group` | `child` \| `teenager` \| `adult` \| `senior` | Filter by age group |
-| `--min-age` | number | Minimum age inclusive |
-| `--max-age` | number | Maximum age inclusive |
-| `--sort-by` | `age` \| `created_at` \| `gender_probability` | Sort field |
-| `--order` | `asc` \| `desc` | Sort direction |
-| `--page` | number | Page number (default: 1) |
-| `--limit` | number | Results per page (default: 10, max: 50) |
+| Flag          | Type                                          | Description                                       |
+| ------------- | --------------------------------------------- | ------------------------------------------------- |
+| `--gender`    | `male` \| `female`                            | Filter by gender                                  |
+| `--country`   | string                                        | ISO 3166-1 alpha-2 country code (e.g. `NG`, `US`) |
+| `--age-group` | `child` \| `teenager` \| `adult` \| `senior`  | Filter by age group                               |
+| `--min-age`   | number                                        | Minimum age inclusive                             |
+| `--max-age`   | number                                        | Maximum age inclusive                             |
+| `--sort-by`   | `age` \| `created_at` \| `gender_probability` | Sort field                                        |
+| `--order`     | `asc` \| `desc`                               | Sort direction                                    |
+| `--page`      | number                                        | Page number (default: 1)                          |
+| `--limit`     | number                                        | Results per page (default: 10, max: 50)           |
 
 ---
 
 ## `profiles export` Options
 
-| Flag | Type | Description |
-|---|---|---|
-| `--format` | `csv` | **Required.** Export format |
-| `--gender` | `male` \| `female` | Filter by gender |
-| `--country` | string | ISO 3166-1 alpha-2 country code |
+| Flag        | Type               | Description                     |
+| ----------- | ------------------ | ------------------------------- |
+| `--format`  | `csv`              | **Required.** Export format     |
+| `--gender`  | `male` \| `female` | Filter by gender                |
+| `--country` | string             | ISO 3166-1 alpha-2 country code |
 
 The CSV file is saved to the current working directory with a timestamped filename.
 
@@ -205,15 +205,15 @@ The CSV file is saved to the current working directory with a timestamped filena
 
 ## Error Handling
 
-| Error | Cause | CLI output |
-|---|---|---|
-| `NotLoggedInError` | No credentials file | `Not logged in. Run insighta login to authenticate.` |
-| `ForbiddenError` | 403 from backend | `Permission denied: ... Your current role is analyst.` |
-| `NotFoundError` | 404 from backend | `No profile found with ID <id>.` |
-| `ValidationError` | 422 from backend | `Validation failed: <message>` |
-| `RateLimitError` | 429 from backend | `Rate limited. Please wait N seconds before retrying.` |
-| `NetworkError` | Fetch failed | `Network error: <operation> failed — <details>` |
-| `TimeoutError` | OAuth not completed in 5 min | `Login timed out.` |
+| Error              | Cause                        | CLI output                                             |
+| ------------------ | ---------------------------- | ------------------------------------------------------ |
+| `NotLoggedInError` | No credentials file          | `Not logged in. Run insighta login to authenticate.`   |
+| `ForbiddenError`   | 403 from backend             | `Permission denied: ... Your current role is analyst.` |
+| `NotFoundError`    | 404 from backend             | `No profile found with ID <id>.`                       |
+| `ValidationError`  | 422 from backend             | `Validation failed: <message>`                         |
+| `RateLimitError`   | 429 from backend             | `Rate limited. Please wait N seconds before retrying.` |
+| `NetworkError`     | Fetch failed                 | `Network error: <operation> failed — <details>`        |
+| `TimeoutError`     | OAuth not completed in 5 min | `Login timed out.`                                     |
 
 ---
 
