@@ -1,20 +1,15 @@
 # insighta-cli
 
-A globally installable CLI for the [Insighta Labs+](https://github.com/insighta-labs) platform. Provides authenticated access to profile management via the Insighta backend API.
+A globally installable CLI for the Insighta Labs+ platform. Provides authenticated access to profile management via the Insighta backend API.
 
 ---
 
-## Three-Repo Architecture
+## Tech Stack
 
-The Insighta platform is split across three repositories that all share the same backend API under `/api/v1/`:
-
-| Repo | Role |
-|---|---|
-| **backend** | Express/Node.js REST API — handles auth, profiles, PKCE, GitHub OAuth |
-| **insighta-cli** *(this repo)* | Globally installable CLI client |
-| **web-portal** | Browser-based frontend client |
-
-All three clients authenticate via the same GitHub OAuth flow and consume the same versioned API endpoints.
+- Node.js + TypeScript
+- Commander.js for command parsing
+- `open` for launching the browser during OAuth
+- Vitest + fast-check for testing
 
 ---
 
@@ -26,16 +21,18 @@ User (Terminal)
       ▼
 insighta binary (Commander.js)
       │
-      ├── Auth Module (login / logout / whoami)
-      │       ├── Temporary localhost callback server (receives OAuth tokens)
-      │       ├── Credentials store (~/.insighta/credentials.json)
-      │       └── HTTP Client → Insighta API (/api/v1/)
+      ├── Auth commands (login / logout / whoami)
+      │       ├── PKCE generator (state, code_verifier, code_challenge)
+      │       ├── Temporary local callback server (port 9876)
+      │       └── Credentials store (~/.insighta/credentials.json)
       │
-      └── Profiles Module (list / get / create / delete / search / export)
-              └── HTTP Client
-                      ├── Token Refresher (401 interceptor)
-                      ├── Rate Limit Handler (429 handler)
-                      └── Insighta API (/api/v1/)
+      └── Profile commands (list / get / create / delete / search / export)
+              └── HTTP Client (apiRequest)
+                      ├── Authorization: Bearer <token> on every request
+                      ├── x-client-type: cli header on every request
+                      ├── x-api-version: 1 header on every request
+                      ├── Token refresher (401 interceptor → auto-refresh + retry)
+                      └── Typed error classes (Forbidden, NotFound, RateLimit, Network…)
 ```
 
 ---
@@ -50,39 +47,58 @@ Requires Node.js 18 or later.
 
 ---
 
-## Authentication Flow (Backend-Delegated PKCE)
+## Environment Variables
 
-The CLI delegates the entire GitHub OAuth + PKCE flow to the backend:
+| Variable                 | Default                 | Description                                          |
+| ------------------------ | ----------------------- | ---------------------------------------------------- |
+| `INSIGHTA_API_URL`       | `http://localhost:3000` | Backend base URL                                     |
+| `GITHUB_CLIENT_ID`       | —                       | **Required.** GitHub OAuth app client ID for the CLI |
+| `INSIGHTA_CALLBACK_PORT` | `9876`                  | Local port for the OAuth callback server             |
 
-1. `insighta login` starts a temporary HTTP server on a random local port.
-2. The CLI opens `GET /api/v1/auth/github?callback_url=http://127.0.0.1:<port>/callback` in the default browser.
-3. The backend generates PKCE parameters, redirects to GitHub, handles the code exchange, and issues tokens.
-4. The backend redirects to the CLI's local callback server with `access_token`, `refresh_token`, and `expires_in` as query parameters.
-5. The CLI saves the tokens to `~/.insighta/credentials.json` (permissions `0600`), then calls `GET /api/v1/auth/me` to fetch the username and role.
-6. The callback server shuts down. Login is complete.
+Set these in your shell profile or a `.env` file before running the CLI.
 
-If the browser flow is not completed within 5 minutes, the CLI times out and exits with an error.
+---
+
+## Authentication Flow
+
+The CLI handles GitHub OAuth with PKCE entirely client-side — no backend redirect is used to initiate the flow.
+
+1. `insighta login` generates a `state` nonce, `code_verifier`, and `code_challenge` (SHA-256 of verifier, base64url-encoded).
+2. Starts a temporary HTTP server on `http://localhost:9876` (or `INSIGHTA_CALLBACK_PORT`).
+3. Opens the browser to `https://github.com/login/oauth/authorize` with the PKCE params and `redirect_uri=http://localhost:<port>/callback`.
+4. GitHub redirects back to the local server with `?code=...&state=...`.
+5. CLI validates the `state` to prevent CSRF.
+6. Sends `GET /auth/github/callback?code=<code>&state=<code_verifier>` to the backend with `x-client-type: cli`. The backend exchanges the code, upserts the user, and returns tokens as JSON.
+7. Calls `GET /auth/me` with the new access token to fetch the username and role.
+8. Saves credentials to `~/.insighta/credentials.json` (permissions `0600`).
+9. Prints `Logged in as @<username>`.
+
+> **Note:** The `redirect_uri` sent to GitHub must exactly match what is registered in your GitHub OAuth app settings. The CLI uses `http://localhost:<port>/callback` — register this URL in your OAuth app.
+
+If the browser flow is not completed within 5 minutes, the CLI times out and exits.
 
 ---
 
 ## Token Handling
 
-- **Access tokens** are short-lived JWTs sent as `Authorization: Bearer <token>` on every API request.
-- **Refresh tokens** are long-lived and stored alongside the access token in `~/.insighta/credentials.json`.
-- When any API request returns **401**, the CLI automatically exchanges the refresh token for a new access token via `POST /api/v1/auth/refresh` and retries the original request exactly once.
-- If the refresh itself fails (400/401), the credentials file is deleted and the user is prompted to log in again.
-- If the refresh fails due to a network error, the credentials are preserved and the user is shown an error.
+- Access tokens are short-lived JWTs sent as `Authorization: Bearer <token>` on every request.
+- Refresh tokens are opaque and stored in `~/.insighta/credentials.json`.
+- On any **401** response, the CLI automatically calls `POST /auth/refresh` with the stored refresh token, updates the credentials file with the new token pair, and retries the original request exactly once.
+- If the refresh returns 400 or 401 (session expired or revoked), the credentials file is deleted and the user is prompted to run `insighta login` again.
+- If the refresh fails due to a network error, credentials are preserved and an error is shown.
 
 ---
 
 ## Credentials Storage
 
-Tokens are stored at `~/.insighta/credentials.json` with file permissions `0600` (owner read/write only):
+```
+~/.insighta/credentials.json  (permissions: 0600)
+```
 
 ```json
 {
-  "accessToken": "gho_...",
-  "refreshToken": "ghr_...",
+  "accessToken": "eyJ...",
+  "refreshToken": "a3f...",
   "expiresAt": 1720000000000,
   "username": "octocat",
   "role": "analyst"
@@ -93,60 +109,63 @@ Tokens are stored at `~/.insighta/credentials.json` with file permissions `0600`
 
 ## Role Enforcement
 
-The backend enforces all role restrictions. The CLI surfaces permission errors clearly:
+The backend enforces all role restrictions. The CLI surfaces permission errors clearly.
 
-| Role | Permitted operations |
-|---|---|
-| `analyst` | `list`, `get`, `search`, `export`, `whoami` |
-| `admin` | All analyst operations + `create`, `delete` |
+| Role      | Permitted commands                                    |
+| --------- | ----------------------------------------------------- |
+| `analyst` | `list`, `get`, `search`, `export`, `whoami`, `logout` |
+| `admin`   | All analyst commands + `create`, `delete`             |
 
-When a 403 is received, the CLI displays the current user's role in the error message. The CLI never enforces roles locally.
+When a 403 is received, the error message includes the user's current role. The CLI never enforces roles locally.
 
 ---
 
-## CLI Usage Reference
+## Commands
 
 ### Authentication
 
 ```bash
-# Log in with GitHub
+# Log in with GitHub (opens browser)
 insighta login
 
-# Log out and revoke session
+# Log out and revoke session on the backend
 insighta logout
 
-# Show current user
+# Show the currently authenticated user
 insighta whoami
 ```
 
 ### Profiles
 
 ```bash
-# List profiles (with optional filters)
+# List profiles (paginated)
 insighta profiles list
 insighta profiles list --gender male
+insighta profiles list --gender female --country NG
+insighta profiles list --age-group adult
+insighta profiles list --min-age 25 --max-age 40
+insighta profiles list --sort-by age --order desc
 insighta profiles list --page 2 --limit 20
-insighta profiles list --gender female --page 1 --limit 10
 
-# Get a profile by ID
+# Get a single profile by ID
 insighta profiles get <id>
 
+# Natural language search
+insighta profiles search "young males from Nigeria"
+insighta profiles search "female seniors"
+
 # Create a profile by name (admin only)
-insighta profiles create "Alice"
+insighta profiles create --name "Harriet Tubman"
 
 # Delete a profile by ID (admin only)
 insighta profiles delete <id>
 
-# Search profiles using natural language
-insighta profiles search "adult males from the US"
-insighta profiles search "senior women"
-
-# Export all profiles to CSV
-insighta profiles export
-# Saves to: ./profiles-export-<ISO8601-date>.csv
+# Export profiles to CSV (saved to current directory)
+insighta profiles export --format csv
+insighta profiles export --format csv --gender male --country NG
 ```
 
-### Help & Version
+### Help
 
 ```bash
 insighta --help
@@ -156,21 +175,45 @@ insighta profiles --help
 
 ---
 
-## Natural Language Search
+## `profiles list` Options
 
-`insighta profiles search "<query>"` sends the query to `GET /api/v1/profiles/search?q=<query>`. The backend interprets the natural language query and maps it to structured filter parameters (gender, age group, country, etc.) before querying the database. The CLI displays matching profiles and the total result count.
-
-If the query cannot be interpreted, a 422 response is returned and the CLI displays a descriptive error.
+| Flag          | Type                                          | Description                                       |
+| ------------- | --------------------------------------------- | ------------------------------------------------- |
+| `--gender`    | `male` \| `female`                            | Filter by gender                                  |
+| `--country`   | string                                        | ISO 3166-1 alpha-2 country code (e.g. `NG`, `US`) |
+| `--age-group` | `child` \| `teenager` \| `adult` \| `senior`  | Filter by age group                               |
+| `--min-age`   | number                                        | Minimum age inclusive                             |
+| `--max-age`   | number                                        | Maximum age inclusive                             |
+| `--sort-by`   | `age` \| `created_at` \| `gender_probability` | Sort field                                        |
+| `--order`     | `asc` \| `desc`                               | Sort direction                                    |
+| `--page`      | number                                        | Page number (default: 1)                          |
+| `--limit`     | number                                        | Results per page (default: 10, max: 50)           |
 
 ---
 
-## API Versioning
+## `profiles export` Options
 
-All API calls are prefixed with `/api/v1/`. The base URL defaults to `http://localhost:3000` and can be overridden:
+| Flag        | Type               | Description                     |
+| ----------- | ------------------ | ------------------------------- |
+| `--format`  | `csv`              | **Required.** Export format     |
+| `--gender`  | `male` \| `female` | Filter by gender                |
+| `--country` | string             | ISO 3166-1 alpha-2 country code |
 
-```bash
-INSIGHTA_API_URL=https://api.insighta.io insighta profiles list
-```
+The CSV file is saved to the current working directory with a timestamped filename.
+
+---
+
+## Error Handling
+
+| Error              | Cause                        | CLI output                                             |
+| ------------------ | ---------------------------- | ------------------------------------------------------ |
+| `NotLoggedInError` | No credentials file          | `Not logged in. Run insighta login to authenticate.`   |
+| `ForbiddenError`   | 403 from backend             | `Permission denied: ... Your current role is analyst.` |
+| `NotFoundError`    | 404 from backend             | `No profile found with ID <id>.`                       |
+| `ValidationError`  | 422 from backend             | `Validation failed: <message>`                         |
+| `RateLimitError`   | 429 from backend             | `Rate limited. Please wait N seconds before retrying.` |
+| `NetworkError`     | Fetch failed                 | `Network error: <operation> failed — <details>`        |
+| `TimeoutError`     | OAuth not completed in 5 min | `Login timed out.`                                     |
 
 ---
 

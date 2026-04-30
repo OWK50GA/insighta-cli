@@ -11,3 +11,6 @@ pnpm-debug.log*
 
 **/*.csv
 **/*-workspace
+**/*.code-workspace
+
+**/*.csv

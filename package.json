@@ -9,18 +9,24 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write ."
   },
-  "keywords": ["insighta", "cli"],
+  "keywords": [
+    "insighta",
+    "cli"
+  ],
   "author": "",
   "license": "ISC",
+  "type": "module",
   "packageManager": "pnpm@10.24.0",
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "commander": "^12.1.0",
-    "open": "^10.1.0"
+    "open": "^10.1.0",
+    "prettier": "^3.8.3"
   },
   "devDependencies": {
     "@fast-check/vitest": "^0.1.5",
